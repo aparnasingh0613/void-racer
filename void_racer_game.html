@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Void Racer 3D - Galaxies Added</title>
+  <style>body {margin:0;overflow:hidden;}canvas{display:block;}</style>
+</head>
+<body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x000000, 0.0005);
+
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 20000);
+camera.position.set(0, 10, 200);
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+// Star field
+const starGeo = new THREE.BufferGeometry();
+const starCount = 20000;
+const positions = new Float32Array(starCount * 3);
+for (let i = 0; i < starCount; i++) {
+  positions[i * 3] = (Math.random() - 0.5) * 8000;
+  positions[i * 3 + 1] = (Math.random() - 0.5) * 8000;
+  positions[i * 3 + 2] = -Math.random() * 15000;
+}
+starGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+const starMat = new THREE.PointsMaterial({color: 0xffffff, size: 5});
+const starField = new THREE.Points(starGeo, starMat);
+scene.add(starField);
+
+// Nebula sphere
+const nebulaGeo = new THREE.SphereGeometry(4000, 64, 64);
+const nebulaMat = new THREE.MeshBasicMaterial({color: 0x5500aa, side: THREE.BackSide, transparent: true, opacity: 0.1});
+const nebula = new THREE.Mesh(nebulaGeo, nebulaMat);
+scene.add(nebula);
+
+// Little galaxies
+const galaxyGeo = new THREE.TorusGeometry(50, 20, 16, 100);
+const galaxyMat = new THREE.MeshBasicMaterial({color: 0x9999ff, transparent: true, opacity: 0.5});
+const galaxies = [];
+for (let i = 0; i < 20; i++) {
+  const galaxy = new THREE.Mesh(galaxyGeo, galaxyMat);
+  galaxy.position.x = (Math.random() - 0.5) * 6000;
+  galaxy.position.y = (Math.random() - 0.5) * 6000;
+  galaxy.position.z = -Math.random() * 15000;
+  galaxy.rotation.x = Math.random() * Math.PI;
+  galaxy.rotation.y = Math.random() * Math.PI;
+  scene.add(galaxy);
+  galaxies.push(galaxy);
+}
+
+// Car
+const carGeo = new THREE.BoxGeometry(40, 15, 60);
+const carMat = new THREE.MeshStandardMaterial({color: 0xff0000});
+const car = new THREE.Mesh(carGeo, carMat);
+car.position.z = 0;
+scene.add(car);
+
+// Driver
+const driverGeo = new THREE.SphereGeometry(5, 16, 16);
+const driverMat = new THREE.MeshStandardMaterial({color: 0xffff00});
+const driver = new THREE.Mesh(driverGeo, driverMat);
+driver.position.set(0, 10, 20);
+car.add(driver);
+
+// Lighting
+const ambientLight = new THREE.AmbientLight(0xffffff, 1);
+scene.add(ambientLight);
+
+// Obstacles
+const obstacleGeo = new THREE.SphereGeometry(20, 16, 16);
+const obstacleMat = new THREE.MeshStandardMaterial({color: 0x00ff00});
+const obstacles = [];
+for (let i = 0; i < 50; i++) {
+  const obstacle = new THREE.Mesh(obstacleGeo, obstacleMat);
+  obstacle.position.x = (Math.random() - 0.5) * 4000;
+  obstacle.position.y = (Math.random() - 0.5) * 2000;
+  obstacle.position.z = -Math.random() * 10000;
+  scene.add(obstacle);
+  obstacles.push(obstacle);
+}
+
+// Controls
+let keys = {};
+window.addEventListener('keydown', e => keys[e.key] = true);
+window.addEventListener('keyup', e => keys[e.key] = false);
+
+function animate() {
+  requestAnimationFrame(animate);
+
+  // Move stars
+  const pos = starGeo.attributes.position.array;
+  for (let i = 0; i < starCount; i++) {
+    pos[i * 3 + 2] += 20;
+    if (pos[i * 3 + 2] > camera.position.z) pos[i * 3 + 2] = -15000;
+  }
+  starGeo.attributes.position.needsUpdate = true;
+
+  // Move obstacles
+  obstacles.forEach(ob => {
+    ob.position.z += 20;
+    if (ob.position.z > camera.position.z + 100) {
+      ob.position.x = (Math.random() - 0.5) * 4000;
+      ob.position.y = (Math.random() - 0.5) * 2000;
+      ob.position.z = -Math.random() * 10000;
+    }
+  });
+
+  // Rotate and move galaxies
+  galaxies.forEach(galaxy => {
+    galaxy.rotation.z += 0.01;
+    galaxy.position.z += 20;
+    if (galaxy.position.z > camera.position.z) {
+      galaxy.position.x = (Math.random() - 0.5) * 6000;
+      galaxy.position.y = (Math.random() - 0.5) * 6000;
+      galaxy.position.z = -Math.random() * 15000;
+    }
+  });
+
+  // Car controls
+  if(keys['ArrowLeft']) car.position.x -= 5;
+  if(keys['ArrowRight']) car.position.x += 5;
+  if(keys['ArrowUp']) car.position.y += 5;
+  if(keys['ArrowDown']) car.position.y -= 5;
+
+  camera.position.x = car.position.x;
+  camera.position.y = car.position.y + 30;
+  camera.position.z = car.position.z + 300;
+  camera.lookAt(car.position);
+
+  renderer.render(scene, camera);
+}
+animate();
+</script>
+</body>
+</html>
